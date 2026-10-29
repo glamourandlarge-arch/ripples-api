@@ -1,13 +1,21 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
-    MongooseModule.forRootAsync({
+    TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        uri: config.getOrThrow<string>('MONGODB_URI'),
+        type: 'postgres' as const,
+        host: config.getOrThrow<string>('POSTGRES_HOST'),
+        port: config.getOrThrow<number>('POSTGRES_PORT'),
+        username: config.getOrThrow<string>('POSTGRES_USER'),
+        password: config.getOrThrow<string>('POSTGRES_PASSWORD'),
+        database: config.getOrThrow<string>('POSTGRES_DB'),
+        ssl: config.getOrThrow<boolean>('POSTGRES_SSL'),
+        autoLoadEntities: true,
+        synchronize: true,
       }),
     }),
   ],

@@ -8,7 +8,12 @@ const booleanFlag = z
 
 export const envSchema = z.object({
   PORT: z.coerce.number().int().positive(),
-  MONGODB_URI: z.string().min(1),
+  POSTGRES_HOST: z.string().min(1),
+  POSTGRES_PORT: z.coerce.number().int().positive(),
+  POSTGRES_USER: z.string().min(1),
+  POSTGRES_PASSWORD: z.string().min(1),
+  POSTGRES_DB: z.string().min(1),
+  POSTGRES_SSL: booleanFlag,
   CORS_ORIGIN: z.string().min(1),
   SERVICE_NAME: z.string().min(1),
   SERVICE_SHARED_SECRET: z.string().min(1),

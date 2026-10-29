@@ -1,7 +1,7 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Note, type NoteDocument } from './note.schema.js';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Note } from './note.entity.js';
 import { NOTE_SEEDS } from './notes.seed.js';
 
 export type NoteResponse = {
@@ -15,28 +15,41 @@ export class NotesService implements OnModuleInit {
   private readonly logger = new Logger(NotesService.name);
 
   constructor(
-    @InjectModel(Note.name) private readonly notes: Model<NoteDocument>,
+    @InjectRepository(Note) private readonly notes: Repository<Note>,
   ) {}
 
   async onModuleInit() {
-    const count = await this.notes.countDocuments();
+    const count = await this.notes.count();
     if (count > 0) {
       return;
     }
 
-    await this.notes.insertMany(NOTE_SEEDS);
+    const createdAt = Date.now();
+    await this.notes.save(
+      NOTE_SEEDS.map((seed, index) =>
+        this.notes.create({
+          title: seed.title,
+          detail: seed.detail,
+          createdAt: new Date(createdAt + index),
+        }),
+      ),
+    );
     this.logger.log(`Seeded ${NOTE_SEEDS.length} notes`);
   }
 
   async findAll(): Promise<NoteResponse[]> {
-    const notes = await this.notes.find().sort({ _id: 1 }).exec();
+    const notes = await this.notes.find({
+      order: { createdAt: 'ASC', id: 'ASC' },
+    });
     return notes.map((note) => toNoteResponse(note));
   }
 }
 
-export function toNoteResponse(note: NoteDocument): NoteResponse {
+export function toNoteResponse(
+  note: Pick<Note, 'id' | 'title' | 'detail'>,
+): NoteResponse {
   return {
-    id: note._id.toString(),
+    id: note.id,
     title: note.title,
     detail: note.detail,
   };

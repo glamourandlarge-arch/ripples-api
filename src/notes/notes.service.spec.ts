@@ -1,13 +1,13 @@
-import type { NoteDocument } from './note.schema.js';
+import type { Note } from './note.entity.js';
 import { toNoteResponse } from './notes.service.js';
 
 describe('toNoteResponse', () => {
-  it('maps the document id to id', () => {
+  it('maps the stored note to the response', () => {
     const note = {
-      _id: { toString: () => 'abc123' },
+      id: 'abc123',
       title: 'Intro',
       detail: 'A starting note.',
-    } as NoteDocument;
+    } as Pick<Note, 'id' | 'title' | 'detail'>;
 
     expect(toNoteResponse(note)).toEqual({
       id: 'abc123',

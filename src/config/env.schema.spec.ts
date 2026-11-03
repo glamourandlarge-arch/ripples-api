@@ -23,6 +23,8 @@ describe('validateEnv', () => {
     expect(env.POSTGRES_DB).toBe('ripples');
     expect(env.POSTGRES_SSL).toBe(false);
     expect(env.PEERS).toEqual({});
+    expect(env.HTTP_TRUST_PROXY).toBe('false');
+    expect(env.SWAGGER_ENABLED).toBe(false);
     expect(env.MESSAGING_ENABLED).toBe(false);
     expect(env.MESSAGING_TRANSPORT).toBe('tcp');
     expect(env.MESSAGING_HOST).toBe('127.0.0.1');

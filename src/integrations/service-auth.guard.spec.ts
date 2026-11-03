@@ -1,7 +1,7 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
-import { Internal } from '../common/decorators/internal.decorator.js';
+import { Internal } from '../utils/decorators/internal.decorator.js';
 import { signRequest } from './handshake.js';
 import { ServiceAuthGuard } from './service-auth.guard.js';
 

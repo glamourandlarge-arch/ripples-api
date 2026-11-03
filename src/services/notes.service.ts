@@ -1,8 +1,8 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Note } from './note.entity.js';
-import { NOTE_SEEDS } from './notes.seed.js';
+import { Note } from '../notes/note.entity.js';
+import { NOTE_SEEDS } from '../notes/notes.seed.js';
 
 export type NoteResponse = {
   id: string;

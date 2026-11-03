@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { INTERNAL_ROUTE } from '../common/decorators/internal.decorator.js';
+import { INTERNAL_ROUTE } from '../utils/decorators/internal.decorator.js';
 import { HandshakeError, requestPath, verifyHandshake } from './handshake.js';
 
 type HandshakeRequest = Request & {

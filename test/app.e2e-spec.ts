@@ -115,6 +115,62 @@ describe('Ripples API (e2e)', () => {
       .expect(401);
   });
 
+  it('manages users', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/users')
+      .send({ email: ' Ada@Example.com ', name: '  Ada Lovelace  ' })
+      .expect(201);
+
+    expect(created.body).toMatchObject({
+      email: 'ada@example.com',
+      name: 'Ada Lovelace',
+    });
+    expect(typeof created.body.id).toBe('string');
+    expect(typeof created.body.createdAt).toBe('string');
+    expect(typeof created.body.updatedAt).toBe('string');
+
+    const id = created.body.id as string;
+
+    const listed = await request(app.getHttpServer())
+      .get('/api/users')
+      .expect(200);
+    expect(listed.body).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id })]),
+    );
+
+    const fetched = await request(app.getHttpServer())
+      .get(`/api/users/${id}`)
+      .expect(200);
+    expect(fetched.body).toMatchObject({ id, email: 'ada@example.com' });
+
+    const updated = await request(app.getHttpServer())
+      .patch(`/api/users/${id}`)
+      .send({ name: 'Ada' })
+      .expect(200);
+    expect(updated.body).toMatchObject({ id, name: 'Ada' });
+
+    await request(app.getHttpServer())
+      .post('/api/users')
+      .send({ email: 'ada@example.com', name: 'Duplicate' })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post('/api/users')
+      .send({ email: 'not-an-email', name: 'Ada' })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/users')
+      .send({ email: 'grace@example.com', name: 'Grace', password: 'secret' })
+      .expect(400);
+
+    await request(app.getHttpServer()).get('/api/users/not-a-uuid').expect(400);
+
+    await request(app.getHttpServer()).delete(`/api/users/${id}`).expect(204);
+
+    await request(app.getHttpServer()).get(`/api/users/${id}`).expect(404);
+  });
+
   it('GET /api/missing returns the error body', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/missing')

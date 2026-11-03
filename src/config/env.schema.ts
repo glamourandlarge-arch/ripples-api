@@ -15,6 +15,8 @@ export const envSchema = z.object({
   POSTGRES_DB: z.string().min(1),
   POSTGRES_SSL: booleanFlag,
   CORS_ORIGIN: z.string().min(1),
+  HTTP_TRUST_PROXY: z.string().default('false'),
+  SWAGGER_ENABLED: booleanFlag,
   SERVICE_NAME: z.string().min(1),
   SERVICE_SHARED_SECRET: z.string().min(1),
   PEERS: z

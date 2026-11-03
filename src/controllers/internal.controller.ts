@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Internal } from '../common/decorators/internal.decorator.js';
+import { Internal } from '../utils/decorators/internal.decorator.js';
 
 @Controller('internal')
 export class InternalController {

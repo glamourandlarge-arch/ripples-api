@@ -1,4 +1,4 @@
-import type { Note } from './note.entity.js';
+import type { Note } from '../notes/note.entity.js';
 import { toNoteResponse } from './notes.service.js';
 
 describe('toNoteResponse', () => {

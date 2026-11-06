@@ -25,11 +25,22 @@ export class User {
   @PrimaryColumn({ type: 'uuid' })
   id: string;
 
-  @Column({ type: 'text', unique: true, transformer: email })
-  email: string;
+  @Column({ type: 'text', unique: true, nullable: true, transformer: email })
+  email: string | null;
+
+  @Column({ type: 'text', unique: true, nullable: true, transformer: trim })
+  phone: string | null;
 
   @Column({ type: 'text', transformer: trim })
   name: string;
+
+  @Column({
+    name: 'password_hash',
+    type: 'text',
+    nullable: true,
+    select: false,
+  })
+  passwordHash: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

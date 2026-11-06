@@ -10,6 +10,7 @@ const required = {
   CORS_ORIGIN: 'http://localhost:3000',
   SERVICE_NAME: 'ripples-api',
   SERVICE_SHARED_SECRET: 'secret',
+  JWT_SECRET: '12345678901234567890123456789012',
 };
 
 describe('validateEnv', () => {
@@ -29,6 +30,10 @@ describe('validateEnv', () => {
     expect(env.MESSAGING_TRANSPORT).toBe('tcp');
     expect(env.MESSAGING_HOST).toBe('127.0.0.1');
     expect(env.MESSAGING_PORT).toBe(8001);
+    expect(env.JWT_SECRET).toBe('12345678901234567890123456789012');
+    expect(env.JWT_EXPIRES_IN).toBe('1h');
+    expect(env.OTP_TTL_SECONDS).toBe(300);
+    expect(env.OTP_DEBUG).toBe(false);
   });
 
   it('parses named peer URLs', () => {
@@ -80,5 +85,19 @@ describe('validateEnv', () => {
         PEERS: 'billing',
       }),
     ).toThrow(/PEERS/);
+
+    expect(() =>
+      validateEnv({
+        ...required,
+        JWT_SECRET: 'too-short',
+      }),
+    ).toThrow(/JWT_SECRET/);
+
+    expect(() =>
+      validateEnv({
+        ...required,
+        JWT_EXPIRES_IN: 'tomorrow',
+      }),
+    ).toThrow(/JWT_EXPIRES_IN/);
   });
 });

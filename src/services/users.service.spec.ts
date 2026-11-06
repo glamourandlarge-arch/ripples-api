@@ -6,7 +6,9 @@ describe('toUserResponse', () => {
     const user = {
       id: '6f1b5d3a-3c2e-4a1b-9d0e-1a2b3c4d5e6f',
       email: 'ada@example.com',
+      phone: '+2348012345678',
       name: 'Ada Lovelace',
+      passwordHash: '$2b$12$secret',
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     } as User;
@@ -14,9 +16,28 @@ describe('toUserResponse', () => {
     expect(toUserResponse(user)).toEqual({
       id: '6f1b5d3a-3c2e-4a1b-9d0e-1a2b3c4d5e6f',
       email: 'ada@example.com',
+      phone: '+2348012345678',
       name: 'Ada Lovelace',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+  });
+
+  it('allows phone-only users', () => {
+    const user = {
+      id: '6f1b5d3a-3c2e-4a1b-9d0e-1a2b3c4d5e6f',
+      email: null,
+      phone: '+2348012345678',
+      name: 'Ripples user',
+      passwordHash: null,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    } as User;
+
+    expect(toUserResponse(user)).toMatchObject({
+      email: null,
+      phone: '+2348012345678',
+      name: 'Ripples user',
     });
   });
 });

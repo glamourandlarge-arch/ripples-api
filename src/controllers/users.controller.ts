@@ -8,20 +8,15 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
-  Post,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from '../services/users.service.js';
-import { CreateUserDto } from '../users/create-user.dto.js';
 import { UpdateUserDto } from '../users/update-user.dto.js';
 
+@ApiBearerAuth('access-token')
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}
-
-  @Post()
-  create(@Body() input: CreateUserDto) {
-    return this.users.create(input);
-  }
 
   @Get()
   findAll() {

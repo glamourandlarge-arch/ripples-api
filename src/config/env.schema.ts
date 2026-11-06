@@ -36,6 +36,13 @@ export const envSchema = z.object({
   MESSAGING_TRANSPORT: z.enum(['tcp', 'redis']).default('tcp'),
   MESSAGING_HOST: z.string().min(1).default('127.0.0.1'),
   MESSAGING_PORT: z.coerce.number().int().positive().default(8001),
+  JWT_SECRET: z.string().min(32),
+  JWT_EXPIRES_IN: z
+    .string()
+    .regex(/^\d+(ms|s|m|h|d)$/)
+    .default('1h'),
+  OTP_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  OTP_DEBUG: booleanFlag,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

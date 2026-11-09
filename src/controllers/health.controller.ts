@@ -16,7 +16,10 @@ export class HealthController {
 
   @Get()
   @HealthCheck()
-  check() {
-    return this.health.check([() => this.database.pingCheck('postgres')]);
+  async check() {
+    const report = await this.health.check([
+      () => this.database.pingCheck('postgres'),
+    ]);
+    return { message: 'Health check completed', data: report };
   }
 }

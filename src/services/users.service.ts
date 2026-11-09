@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomBytes } from 'node:crypto';
 import { Repository } from 'typeorm';
 import { isUniqueViolation } from '../utils/is-unique-violation.js';
 import type { CreateUserDto } from '../users/create-user.dto.js';
@@ -16,6 +17,8 @@ export type UserResponse = {
   email: string | null;
   phone: string | null;
   name: string;
+  hasPassword: boolean;
+  sessionVersion: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -26,8 +29,6 @@ export type CreateAccountInput = {
   passwordHash: string;
   phone?: string | null;
 };
-
-const DEFAULT_PHONE_USER_NAME = 'Ripples user';
 
 @Injectable()
 export class UsersService {
@@ -53,6 +54,10 @@ export class UsersService {
     });
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    return this.users.findOneBy({ email: email.trim().toLowerCase() });
+  }
+
   async findByEmailWithPassword(email: string): Promise<User | null> {
     return this.users
       .createQueryBuilder('user')
@@ -66,15 +71,19 @@ export class UsersService {
   }
 
   async findOrCreateByPhone(phone: string): Promise<UserResponse> {
-    const existing = await this.findByPhone(phone);
+    const existing = await this.users
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.phone = :phone', { phone })
+      .getOne();
     if (existing) {
-      return toUserResponse(existing);
+      return toUserResponse(await this.ensureSystemUsername(existing, phone));
     }
 
     return this.saveUser({
       email: null,
       phone,
-      name: DEFAULT_PHONE_USER_NAME,
+      name: createGenericUsername(phone),
       passwordHash: null,
     });
   }
@@ -87,21 +96,60 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<UserResponse> {
-    return toUserResponse(await this.findUser(id));
+    return toUserResponse(await this.findUserWithPassword(id));
+  }
+
+  async findAuthAccount(id: string): Promise<User> {
+    return this.findUserWithPassword(id);
+  }
+
+  async setPasswordHash(
+    id: string,
+    passwordHash: string,
+  ): Promise<UserResponse> {
+    const user = await this.findUserWithPassword(id);
+    user.passwordHash = passwordHash;
+    user.sessionVersion += 1;
+    return toUserResponse(await this.users.save(user));
+  }
+
+  async bumpSessionVersion(id: string): Promise<UserResponse> {
+    const user = await this.findUser(id);
+    user.sessionVersion += 1;
+    return toUserResponse(await this.users.save(user));
   }
 
   async update(id: string, input: UpdateUserDto): Promise<UserResponse> {
     const user = await this.findUser(id);
-    if (input.email !== undefined) {
-      user.email = input.email;
-    }
     if (input.name !== undefined) {
       user.name = input.name;
     }
     assertHasContact(user);
 
     try {
-      return toUserResponse(await this.users.save(user));
+      await this.users.save(user);
+      return this.findOne(id);
+    } catch (error) {
+      throw mapWriteError(error);
+    }
+  }
+
+  async updateContact(
+    id: string,
+    input: { email?: string; phone?: string },
+  ): Promise<UserResponse> {
+    const user = await this.findUser(id);
+    if (input.email !== undefined) {
+      user.email = input.email;
+    }
+    if (input.phone !== undefined) {
+      user.phone = input.phone;
+    }
+    assertHasContact(user);
+
+    try {
+      await this.users.save(user);
+      return this.findOne(id);
     } catch (error) {
       throw mapWriteError(error);
     }
@@ -142,7 +190,31 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return user;
+    return this.ensureSystemUsername(user, user.phone);
+  }
+
+  private async findUserWithPassword(id: string): Promise<User> {
+    const user = await this.users
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :id', { id })
+      .getOne();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return this.ensureSystemUsername(user, user.phone);
+  }
+
+  private async ensureSystemUsername(
+    user: User,
+    phone: string | null,
+  ): Promise<User> {
+    if (!needsSystemUsername(user.name)) {
+      return user;
+    }
+
+    user.name = createGenericUsername(phone ?? user.id);
+    return this.users.save(user);
   }
 }
 
@@ -152,9 +224,24 @@ export function toUserResponse(user: User): UserResponse {
     email: user.email,
     phone: user.phone,
     name: user.name,
+    hasPassword: Boolean(user.passwordHash),
+    sessionVersion: user.sessionVersion ?? 0,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
+}
+
+const LEGACY_PLACEHOLDER_NAMES = new Set(['ripples user', 'rippler user']);
+
+function needsSystemUsername(name: string | null | undefined): boolean {
+  const normalized = name?.trim().toLowerCase() ?? '';
+  return !normalized || LEGACY_PLACEHOLDER_NAMES.has(normalized);
+}
+
+export function createGenericUsername(seed: string): string {
+  const lastDigits = seed.replace(/\D/g, '').slice(-4) || '0000';
+  const suffix = randomBytes(2).toString('hex');
+  return `ripple_${lastDigits}${suffix}`;
 }
 
 function assertHasContact(input: {

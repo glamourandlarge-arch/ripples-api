@@ -7,13 +7,28 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 
+export type OtpChannel = 'phone' | 'email';
+export type OtpPurpose = 'login' | 'contact_update';
+
 @Entity({ name: 'otp_challenges' })
 export class OtpChallenge {
   @PrimaryColumn({ type: 'uuid' })
   id: string;
 
-  @Column({ type: 'text' })
-  phone: string;
+  @Column({ type: 'text', nullable: true })
+  phone: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  email: string | null;
+
+  @Column({ type: 'text', default: 'phone' })
+  channel: OtpChannel;
+
+  @Column({ type: 'text', default: 'login' })
+  purpose: OtpPurpose;
+
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
+  userId: string | null;
 
   @Column({ name: 'code_hash', type: 'text' })
   codeHash: string;

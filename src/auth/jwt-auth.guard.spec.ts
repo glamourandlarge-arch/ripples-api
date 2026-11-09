@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { UsersService } from '../services/users.service.js';
 import { Internal } from '../utils/decorators/internal.decorator.js';
 import { Public } from '../utils/decorators/public.decorator.js';
+import { AccessTokenRevocationService } from './access-token-revocation.service.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { JwtStrategy } from './jwt.strategy.js';
 
@@ -69,6 +70,10 @@ describe('JwtAuthGuard', () => {
         {
           provide: UsersService,
           useValue: { findOne: () => Promise.reject(new Error('unused')) },
+        },
+        {
+          provide: AccessTokenRevocationService,
+          useValue: { isRevoked: () => Promise.resolve(false) },
         },
       ],
     }).compile();

@@ -1,6 +1,12 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  UnprocessableEntityException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpExceptionFilter } from './utils/filters/http-exception.filter.js';
+import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
+import { flattenValidationErrors } from './common/validation/flatten-validation-errors.js';
 
 export function configureApp(app: INestApplication, config: ConfigService) {
   app.setGlobalPrefix('api');
@@ -12,7 +18,17 @@ export function configureApp(app: INestApplication, config: ConfigService) {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors) => {
+        const fieldErrors = flattenValidationErrors(errors);
+        const firstMessage =
+          Object.values(fieldErrors)[0]?.[0] ?? 'Validation failed';
+        return new UnprocessableEntityException({
+          message: firstMessage,
+          errors: fieldErrors,
+        });
+      },
     }),
   );
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalFilters(new ApiExceptionFilter());
 }

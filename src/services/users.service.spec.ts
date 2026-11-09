@@ -18,6 +18,8 @@ describe('toUserResponse', () => {
       email: 'ada@example.com',
       phone: '+2348012345678',
       name: 'Ada Lovelace',
+      hasPassword: true,
+      sessionVersion: 0,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
@@ -28,7 +30,7 @@ describe('toUserResponse', () => {
       id: '6f1b5d3a-3c2e-4a1b-9d0e-1a2b3c4d5e6f',
       email: null,
       phone: '+2348012345678',
-      name: 'Ripples user',
+      name: 'ripple_5678abcd',
       passwordHash: null,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
@@ -37,7 +39,7 @@ describe('toUserResponse', () => {
     expect(toUserResponse(user)).toMatchObject({
       email: null,
       phone: '+2348012345678',
-      name: 'Ripples user',
+      name: 'ripple_5678abcd',
     });
   });
 });

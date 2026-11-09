@@ -8,7 +8,8 @@ export class NotesController {
   constructor(private readonly notes: NotesService) {}
 
   @Get()
-  findAll() {
-    return this.notes.findAll();
+  async findAll() {
+    const rows = await this.notes.findAll();
+    return { message: 'Notes fetched successfully', data: rows };
   }
 }

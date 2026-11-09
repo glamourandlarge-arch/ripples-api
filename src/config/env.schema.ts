@@ -43,6 +43,12 @@ export const envSchema = z.object({
     .default('1h'),
   OTP_TTL_SECONDS: z.coerce.number().int().positive().default(300),
   OTP_DEBUG: booleanFlag,
+  OTP_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(5),
+  OTP_RATE_LIMIT_WINDOW_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(900),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

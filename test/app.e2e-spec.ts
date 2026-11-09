@@ -75,8 +75,12 @@ describe('Ripples API (e2e)', () => {
       })
       .expect(201);
 
-    expect(response.body.user).not.toHaveProperty('passwordHash');
-    return response.body.accessToken as string;
+    expect(response.body).toMatchObject({
+      status: true,
+      message: 'Account created successfully',
+    });
+    expect(response.body.data.user).not.toHaveProperty('passwordHash');
+    return response.body.data.accessToken as string;
   }
 
   it('GET /api/health reports postgres', async () => {
@@ -85,13 +89,23 @@ describe('Ripples API (e2e)', () => {
       .expect(200);
 
     expect(response.body).toMatchObject({
-      status: 'ok',
-      details: { postgres: { status: 'up' } },
+      status: true,
+      message: 'Health check completed',
+      data: {
+        status: 'ok',
+        details: { postgres: { status: 'up' } },
+      },
     });
   });
 
   it('GET /api/notes returns the seeded notes', async () => {
-    await request(app.getHttpServer()).get('/api/notes').expect(401);
+    const unauthorized = await request(app.getHttpServer())
+      .get('/api/notes')
+      .expect(401);
+    expect(unauthorized.body).toMatchObject({
+      status: false,
+      message: 'Access Denied! Please provide a valid token.',
+    });
 
     const token = await accessToken('notes-owner@example.com');
     const response = await request(app.getHttpServer())
@@ -99,11 +113,15 @@ describe('Ripples API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(response.body).toEqual(
+    expect(response.body).toMatchObject({
+      status: true,
+      message: 'Notes fetched successfully',
+    });
+    expect(response.body.data).toEqual(
       NOTE_SEEDS.map((note) => expect.objectContaining(note)),
     );
-    expect(response.body).toHaveLength(NOTE_SEEDS.length);
-    for (const note of response.body as Array<Record<string, unknown>>) {
+    expect(response.body.data).toHaveLength(NOTE_SEEDS.length);
+    for (const note of response.body.data as Array<Record<string, unknown>>) {
       expect(typeof note.id).toBe('string');
       expect(note).not.toHaveProperty('_id');
     }
@@ -128,7 +146,11 @@ describe('Ripples API (e2e)', () => {
       .set('x-signature', signature)
       .expect(200);
 
-    expect(response.body).toEqual({ ok: true, service: 'ripples-api' });
+    expect(response.body).toEqual({
+      status: true,
+      message: 'Internal ping succeeded',
+      data: { ok: true, service: 'ripples-api' },
+    });
 
     await request(app.getHttpServer())
       .get(path)
@@ -150,28 +172,39 @@ describe('Ripples API (e2e)', () => {
       })
       .expect(201);
 
-    expect(registered.body.user).toMatchObject({
+    expect(registered.body).toMatchObject({
+      status: true,
+      message: 'Account created successfully',
+    });
+    expect(registered.body.data.user).toMatchObject({
       email: 'grace@example.com',
       name: 'Grace Hopper',
     });
-    expect(registered.body.user).not.toHaveProperty('passwordHash');
-    expect(typeof registered.body.accessToken).toBe('string');
+    expect(registered.body.data.user).not.toHaveProperty('passwordHash');
+    expect(typeof registered.body.data.accessToken).toBe('string');
 
     const me = await request(app.getHttpServer())
       .get('/api/auth/me')
-      .set('Authorization', `Bearer ${registered.body.accessToken}`)
+      .set('Authorization', `Bearer ${registered.body.data.accessToken}`)
       .expect(200);
     expect(me.body).toMatchObject({
-      id: registered.body.user.id,
-      email: 'grace@example.com',
+      status: true,
+      data: {
+        id: registered.body.data.user.id,
+        email: 'grace@example.com',
+      },
     });
 
     const login = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'grace@example.com', password: 'correct-horse' })
       .expect(200);
-    expect(typeof login.body.accessToken).toBe('string');
-    expect(login.body.user).not.toHaveProperty('passwordHash');
+    expect(login.body).toMatchObject({
+      status: true,
+      message: 'Login successful',
+    });
+    expect(typeof login.body.data.accessToken).toBe('string');
+    expect(login.body.data.user).not.toHaveProperty('passwordHash');
 
     await request(app.getHttpServer())
       .post('/api/auth/login')
@@ -193,10 +226,42 @@ describe('Ripples API (e2e)', () => {
       .expect(409);
   });
 
-  it('manages users', async () => {
+  it('logs out and rejects the revoked access token', async () => {
+    const registered = await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .send({
+        email: 'logout@example.com',
+        name: 'Logout User',
+        password: 'correct-horse',
+      })
+      .expect(201);
+
+    const token = registered.body.data.accessToken as string;
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/auth/logout')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204);
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .post('/api/auth/logout')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(401);
+  });
+
+  it('manages the authenticated user only', async () => {
     await request(app.getHttpServer()).get('/api/users').expect(401);
 
-    const token = await accessToken('users-owner@example.com');
     const created = await request(app.getHttpServer())
       .post('/api/auth/register')
       .send({
@@ -206,36 +271,46 @@ describe('Ripples API (e2e)', () => {
       })
       .expect(201);
 
-    expect(created.body.user).toMatchObject({
+    expect(created.body.data.user).toMatchObject({
       email: 'ada@example.com',
       name: 'Ada Lovelace',
       phone: null,
     });
-    expect(typeof created.body.user.id).toBe('string');
-    expect(created.body.user).not.toHaveProperty('passwordHash');
+    expect(typeof created.body.data.user.id).toBe('string');
+    expect(created.body.data.user).not.toHaveProperty('passwordHash');
 
-    const id = created.body.user.id as string;
+    const id = created.body.data.user.id as string;
+    const token = created.body.data.accessToken as string;
+    const otherToken = await accessToken('users-owner@example.com');
 
-    const listed = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .get('/api/users')
       .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    expect(listed.body).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id })]),
-    );
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get(`/api/users/${id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .patch(`/api/users/${id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ name: 'Hacker' })
+      .expect(403);
 
     const fetched = await request(app.getHttpServer())
       .get(`/api/users/${id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(fetched.body).toMatchObject({ id, email: 'ada@example.com' });
+    expect(fetched.body.data).toMatchObject({ id, email: 'ada@example.com' });
 
     const updated = await request(app.getHttpServer())
       .patch(`/api/users/${id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Ada' })
       .expect(200);
-    expect(updated.body).toMatchObject({ id, name: 'Ada' });
+    expect(updated.body.data).toMatchObject({ id, name: 'Ada' });
 
     await request(app.getHttpServer())
       .post('/api/auth/register')
@@ -246,6 +321,21 @@ describe('Ripples API (e2e)', () => {
       })
       .expect(409);
 
+    const invalid = await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .send({ email: 'not-an-email', name: 'Bad', password: 'correct-horse' })
+      .expect(422);
+    expect(invalid.body).toMatchObject({
+      status: false,
+      data: [],
+    });
+    expect(typeof invalid.body.message).toBe('string');
+    expect(invalid.body.errors).toEqual(
+      expect.objectContaining({
+        email: expect.arrayContaining([expect.any(String)]),
+      }),
+    );
+
     await request(app.getHttpServer())
       .get('/api/users/not-a-uuid')
       .set('Authorization', `Bearer ${token}`)
@@ -253,25 +343,34 @@ describe('Ripples API (e2e)', () => {
 
     await request(app.getHttpServer())
       .delete(`/api/users/${id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/api/users/${id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(204);
 
-    await request(app.getHttpServer())
+    const missing = await request(app.getHttpServer())
       .get(`/api/users/${id}`)
       .set('Authorization', `Bearer ${token}`)
-      .expect(404);
+      .expect(401);
   });
 
   it('registers and logs in with phone OTP', async () => {
-    const phone = '08012345678';
+    const phone = '+2348012345678';
 
     const sent = await request(app.getHttpServer())
       .post('/api/auth/otp/send')
       .send({ phone })
       .expect(200);
 
-    expect(sent.body).toMatchObject({ ok: true });
-    expect(sent.body.debugCode).toMatch(/^\d{6}$/);
+    expect(sent.body).toMatchObject({
+      status: true,
+      message: 'Verification code sent successfully',
+      data: { ok: true },
+    });
+    expect(sent.body.data.debugCode).toMatch(/^\d{6}$/);
 
     await request(app.getHttpServer())
       .post('/api/auth/otp/verify')
@@ -280,22 +379,26 @@ describe('Ripples API (e2e)', () => {
 
     const verified = await request(app.getHttpServer())
       .post('/api/auth/otp/verify')
-      .send({ phone, code: sent.body.debugCode })
+      .send({ phone, code: sent.body.data.debugCode })
       .expect(200);
 
-    expect(verified.body.user).toMatchObject({
+    expect(verified.body).toMatchObject({
+      status: true,
+      message: 'Phone verified successfully',
+    });
+    expect(verified.body.data.user).toMatchObject({
       phone: '+2348012345678',
       email: null,
-      name: 'Ripples user',
     });
-    expect(typeof verified.body.accessToken).toBe('string');
+    expect(verified.body.data.user.name).toMatch(/^ripple_5678[a-f0-9]{4}$/);
+    expect(typeof verified.body.data.accessToken).toBe('string');
 
     const me = await request(app.getHttpServer())
       .get('/api/auth/me')
-      .set('Authorization', `Bearer ${verified.body.accessToken}`)
+      .set('Authorization', `Bearer ${verified.body.data.accessToken}`)
       .expect(200);
-    expect(me.body).toMatchObject({
-      id: verified.body.user.id,
+    expect(me.body.data).toMatchObject({
+      id: verified.body.data.user.id,
       phone: '+2348012345678',
     });
 
@@ -306,10 +409,10 @@ describe('Ripples API (e2e)', () => {
 
     const again = await request(app.getHttpServer())
       .post('/api/auth/otp/verify')
-      .send({ phone: '+2348012345678', code: resent.body.debugCode })
+      .send({ phone: '+2348012345678', code: resent.body.data.debugCode })
       .expect(200);
 
-    expect(again.body.user.id).toBe(verified.body.user.id);
+    expect(again.body.data.user.id).toBe(verified.body.data.user.id);
   });
 
   it('GET /api/missing returns the error body', async () => {
@@ -318,9 +421,10 @@ describe('Ripples API (e2e)', () => {
       .expect(404);
 
     expect(response.body).toMatchObject({
-      statusCode: 404,
-      path: '/api/missing',
+      status: false,
+      message: 'The requested resource was not found',
+      data: [],
+      errors: {},
     });
-    expect(typeof response.body.timestamp).toBe('string');
   });
 });

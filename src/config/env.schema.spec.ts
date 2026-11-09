@@ -34,6 +34,8 @@ describe('validateEnv', () => {
     expect(env.JWT_EXPIRES_IN).toBe('1h');
     expect(env.OTP_TTL_SECONDS).toBe(300);
     expect(env.OTP_DEBUG).toBe(false);
+    expect(env.OTP_RATE_LIMIT_MAX).toBe(5);
+    expect(env.OTP_RATE_LIMIT_WINDOW_SECONDS).toBe(900);
   });
 
   it('parses named peer URLs', () => {

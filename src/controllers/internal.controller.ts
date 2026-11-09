@@ -10,8 +10,11 @@ export class InternalController {
   @Internal()
   ping() {
     return {
-      ok: true,
-      service: this.config.getOrThrow<string>('SERVICE_NAME'),
+      message: 'Internal ping succeeded',
+      data: {
+        ok: true,
+        service: this.config.getOrThrow<string>('SERVICE_NAME'),
+      },
     };
   }
 }

@@ -42,6 +42,9 @@ export class User {
   })
   passwordHash: string | null;
 
+  @Column({ name: 'session_version', type: 'int', default: 0 })
+  sessionVersion: number;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

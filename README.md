@@ -25,6 +25,58 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## API response envelope
+
+Every JSON response uses a Tokyo-style envelope so the frontend can always read `status` and `message`.
+
+Success:
+
+```bash
+curl -s http://localhost:8000/api/health
+```
+
+```json
+{
+  "status": true,
+  "message": "Health check completed",
+  "data": { "status": "ok", "details": { "postgres": { "status": "up" } } }
+}
+```
+
+Controllers return `{ message, data }` (or plain data). The global interceptor wraps them. Controllers throw Nest HTTP exceptions for failures; the global filter formats them.
+
+Validation error (`422`):
+
+```bash
+curl -s -X POST http://localhost:8000/api/auth/register \
+  -H 'content-type: application/json' \
+  -d '{"email":"not-an-email","name":"Ada","password":"correct-horse"}'
+```
+
+```json
+{
+  "status": false,
+  "message": "email must be an email",
+  "data": [],
+  "errors": {
+    "email": ["email must be an email"]
+  }
+}
+```
+
+Unauthorized (`401`):
+
+```json
+{
+  "status": false,
+  "message": "Access Denied! Please provide a valid token.",
+  "data": null,
+  "errors": null
+}
+```
+
+Helpers live in `src/common/responses/api-response.ts`. Wiring is in `src/configure-app.ts`.
+
 ## Project setup
 
 ```bash

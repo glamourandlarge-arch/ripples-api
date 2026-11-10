@@ -49,6 +49,13 @@ export const envSchema = z.object({
     .int()
     .positive()
     .default(900),
+  REGIONS_SEED_ON_BOOT: booleanFlag,
+  REGIONS_DATA_URL: z
+    .string()
+    .url()
+    .default(
+      'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/json/countries+states+cities.json',
+    ),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

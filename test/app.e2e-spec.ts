@@ -48,6 +48,7 @@ describe('Ripples API (e2e)', () => {
     process.env.JWT_EXPIRES_IN = '1h';
     process.env.OTP_TTL_SECONDS = '300';
     process.env.OTP_DEBUG = 'true';
+    process.env.REGIONS_SEED_ON_BOOT = 'false';
 
     const { AppModule } = await import('../src/app.module.js');
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -57,6 +58,50 @@ describe('Ripples API (e2e)', () => {
     app = moduleFixture.createNestApplication({ rawBody: true });
     configureApp(app, app.get(ConfigService));
     await app.init();
+
+    const { RegionsSeedService } = await import(
+      '../src/regions/regions-seed.service.js'
+    );
+    await app.get(RegionsSeedService).persistDataset([
+      {
+        id: 1,
+        name: 'Canada',
+        iso2: 'CA',
+        iso3: 'CAN',
+        phonecode: '1',
+        currency: 'CAD',
+        capital: 'Ottawa',
+        region: 'Americas',
+        subregion: 'Northern America',
+        emoji: '🇨🇦',
+        latitude: '56.13036600',
+        longitude: '-106.34677100',
+        states: [
+          {
+            id: 10,
+            name: 'Ontario',
+            iso2: 'ON',
+            type: 'province',
+            latitude: '51.25377500',
+            longitude: '-85.32321400',
+            cities: [
+              {
+                id: 100,
+                name: 'Toronto',
+                latitude: '43.70011000',
+                longitude: '-79.41630000',
+              },
+              {
+                id: 101,
+                name: 'Ottawa',
+                latitude: '45.41117000',
+                longitude: '-75.69812000',
+              },
+            ],
+          },
+        ],
+      },
+    ]);
   });
 
   afterAll(async () => {
@@ -351,7 +396,7 @@ describe('Ripples API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(204);
 
-    const missing = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .get(`/api/users/${id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(401);
@@ -413,6 +458,57 @@ describe('Ripples API (e2e)', () => {
       .expect(200);
 
     expect(again.body.data.user.id).toBe(verified.body.data.user.id);
+  });
+
+  it('lists countries, states, and cities for selection', async () => {
+    const countries = await request(app.getHttpServer())
+      .get('/api/countries')
+      .expect(200);
+
+    expect(countries.body).toMatchObject({
+      status: true,
+      message: 'Countries fetched successfully',
+    });
+    expect(countries.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Canada',
+          iso2: 'CA',
+          iso3: 'CAN',
+          emoji: '🇨🇦',
+        }),
+      ]),
+    );
+
+    const countryId = (
+      countries.body.data as Array<{ id: string; iso2: string }>
+    ).find((row) => row.iso2 === 'CA')?.id;
+    expect(typeof countryId).toBe('string');
+
+    const states = await request(app.getHttpServer())
+      .get(`/api/countries/${countryId}/states`)
+      .expect(200);
+    expect(states.body.data).toEqual([
+      expect.objectContaining({ name: 'Ontario', iso2: 'ON' }),
+    ]);
+
+    const stateId = states.body.data[0].id as string;
+    const cities = await request(app.getHttpServer())
+      .get(`/api/states/${stateId}/cities`)
+      .expect(200);
+    expect(cities.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Ottawa' }),
+        expect.objectContaining({ name: 'Toronto' }),
+      ]),
+    );
+
+    const filtered = await request(app.getHttpServer())
+      .get('/api/countries')
+      .query({ q: 'can' })
+      .expect(200);
+    expect(filtered.body.data).toHaveLength(1);
+    expect(filtered.body.data[0].iso2).toBe('CA');
   });
 
   it('GET /api/missing returns the error body', async () => {

@@ -36,6 +36,8 @@ describe('validateEnv', () => {
     expect(env.OTP_DEBUG).toBe(false);
     expect(env.OTP_RATE_LIMIT_MAX).toBe(5);
     expect(env.OTP_RATE_LIMIT_WINDOW_SECONDS).toBe(900);
+    expect(env.REGIONS_SEED_ON_BOOT).toBe(false);
+    expect(env.REGIONS_DATA_URL).toContain('countries+states+cities.json');
   });
 
   it('parses named peer URLs', () => {

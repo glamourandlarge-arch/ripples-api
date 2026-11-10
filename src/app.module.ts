@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AmenitiesModule } from './amenities/amenities.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AppConfigModule } from './config/config.module.js';
 import { DatabaseModule } from './database/database.module.js';
@@ -22,6 +23,7 @@ import { UsersModule } from './users/users.module.js';
     AuthModule,
     EngagementsModule,
     RegionsModule,
+    AmenitiesModule,
   ],
 })
 export class AppModule {}

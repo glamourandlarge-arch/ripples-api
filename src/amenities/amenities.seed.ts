@@ -1,0 +1,87 @@
+export const AMENITY_SEEDS = [
+  {
+    name: 'Backup power',
+    slug: 'backup-power',
+    icon: 'backup-power',
+    sortOrder: 1,
+  },
+  {
+    name: 'Water supply',
+    slug: 'water-supply',
+    icon: 'water-supply',
+    sortOrder: 2,
+  },
+  {
+    name: 'Air conditioning',
+    slug: 'air-conditioning',
+    icon: 'air-conditioning',
+    sortOrder: 3,
+  },
+  {
+    name: 'Water heater',
+    slug: 'water-heater',
+    icon: 'water-heater',
+    sortOrder: 4,
+  },
+  {
+    name: '24/7 Security',
+    slug: 'security-24-7',
+    icon: 'security-24-7',
+    sortOrder: 5,
+  },
+  {
+    name: 'CCTV Surveillance',
+    slug: 'cctv-surveillance',
+    icon: 'cctv-surveillance',
+    sortOrder: 6,
+  },
+  {
+    name: 'Gated Estate',
+    slug: 'gated-estate',
+    icon: 'gated-estate',
+    sortOrder: 7,
+  },
+  {
+    name: 'Fitted Kitchen',
+    slug: 'fitted-kitchen',
+    icon: 'fitted-kitchen',
+    sortOrder: 8,
+  },
+  {
+    name: 'Built-in wardrobes',
+    slug: 'built-in-wardrobes',
+    icon: 'built-in-wardrobes',
+    sortOrder: 9,
+  },
+  {
+    name: 'Balcony / Terrace',
+    slug: 'balcony-terrace',
+    icon: 'balcony-terrace',
+    sortOrder: 10,
+  },
+  {
+    name: 'Parking space',
+    slug: 'parking-space',
+    icon: 'parking-space',
+    sortOrder: 11,
+  },
+  {
+    name: 'Elevator / Lift',
+    slug: 'elevator-lift',
+    icon: 'elevator-lift',
+    sortOrder: 12,
+  },
+  {
+    name: 'Swimming pool',
+    slug: 'swimming-pool',
+    icon: 'swimming-pool',
+    sortOrder: 13,
+  },
+  { name: 'Gym', slug: 'gym', icon: 'gym', sortOrder: 14 },
+  {
+    name: 'Outdoor space',
+    slug: 'outdoor-space',
+    icon: 'outdoor-space',
+    sortOrder: 15,
+  },
+] as const;

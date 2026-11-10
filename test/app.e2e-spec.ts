@@ -59,9 +59,8 @@ describe('Ripples API (e2e)', () => {
     configureApp(app, app.get(ConfigService));
     await app.init();
 
-    const { RegionsSeedService } = await import(
-      '../src/regions/regions-seed.service.js'
-    );
+    const { RegionsSeedService } =
+      await import('../src/regions/regions-seed.service.js');
     await app.get(RegionsSeedService).persistDataset([
       {
         id: 1,
@@ -458,6 +457,93 @@ describe('Ripples API (e2e)', () => {
       .expect(200);
 
     expect(again.body.data.user.id).toBe(verified.body.data.user.id);
+  });
+
+  it('manages amenities for property toggles', async () => {
+    const listed = await request(app.getHttpServer())
+      .get('/api/amenities')
+      .expect(200);
+
+    expect(listed.body).toMatchObject({
+      status: true,
+      message: 'Amenities fetched successfully',
+    });
+    expect(listed.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Swimming pool',
+          slug: 'swimming-pool',
+          icon: 'swimming-pool',
+          isActive: true,
+        }),
+        expect.objectContaining({
+          name: 'Backup power',
+          slug: 'backup-power',
+        }),
+      ]),
+    );
+    expect(listed.body.data.length).toBeGreaterThanOrEqual(15);
+
+    await request(app.getHttpServer())
+      .post('/api/amenities')
+      .send({
+        name: 'Rooftop lounge',
+        slug: 'rooftop-lounge',
+        icon: 'rooftop-lounge',
+      })
+      .expect(401);
+
+    const token = await accessToken('amenities-owner@example.com');
+    const created = await request(app.getHttpServer())
+      .post('/api/amenities')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Rooftop lounge',
+        slug: 'rooftop-lounge',
+        icon: 'rooftop-lounge',
+      })
+      .expect(201);
+
+    expect(created.body.data).toMatchObject({
+      name: 'Rooftop lounge',
+      slug: 'rooftop-lounge',
+      icon: 'rooftop-lounge',
+      isActive: true,
+    });
+
+    const id = created.body.data.id as string;
+    const updated = await request(app.getHttpServer())
+      .patch(`/api/amenities/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isActive: false })
+      .expect(200);
+    expect(updated.body.data.isActive).toBe(false);
+
+    const activeOnly = await request(app.getHttpServer())
+      .get('/api/amenities')
+      .expect(200);
+    expect(
+      (activeOnly.body.data as Array<{ id: string }>).some(
+        (row) => row.id === id,
+      ),
+    ).toBe(false);
+
+    const withInactive = await request(app.getHttpServer())
+      .get('/api/amenities')
+      .query({ includeInactive: 'true' })
+      .expect(200);
+    expect(
+      (withInactive.body.data as Array<{ id: string }>).some(
+        (row) => row.id === id,
+      ),
+    ).toBe(true);
+
+    await request(app.getHttpServer())
+      .delete(`/api/amenities/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204);
+
+    await request(app.getHttpServer()).get(`/api/amenities/${id}`).expect(404);
   });
 
   it('lists countries, states, and cities for selection', async () => {
